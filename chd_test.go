@@ -3,6 +3,7 @@ package mph
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -67,6 +68,12 @@ func TestCHDSerialization(t *testing.T) {
 	w := &bytes.Buffer{}
 	err = m.Write(w)
 	assert.NoError(t, err)
+
+	indexW := &bytes.Buffer{}
+	err = m.Indexer.Write(indexW)
+	assert.NoError(t, err)
+	fmt.Printf("size: indexer %d vs. hashmap %d, num keys: %d\n", len(indexW.Bytes()), len(w.Bytes()), len(m.keys))	
+	
 
 	n, err := Mmap(w.Bytes())
 	assert.NoError(t, err)
