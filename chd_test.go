@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -75,8 +77,16 @@ func TestCHDSerialization(t *testing.T) {
 	err = m.Indexer.Write(z)
 	assert.NoError(t, err)
 	z.Close()
-	fmt.Printf("size: indexer %d vs. hashmap %d, num keys: %d, hash fns %d. indexes %d, Eg, %x & %x\n", len(indexW.Bytes()), len(w.Bytes()), len(m.keys), len(m.Indexer.r), len(m.Indexer.indices), m.Indexer.indices[0], m.Indexer.indices[100])	
-	
+
+	maxIndex := uint16(0)
+	for i := 0; i < len(m.Indexer.indices); i++ {
+		if maxIndex < m.Indexer.indices[i] && m.Indexer.indices[i] != ^uint16(0) {
+			maxIndex = m.Indexer.indices[i]
+		}
+	}
+
+	fmt.Printf("size: indexer %d vs. hashmap %d, num keys: %d, hash fns %d. indexes %d, maxIndex %d \n", len(indexW.Bytes()), len(w.Bytes()), len(m.keys), len(m.Indexer.r), len(m.Indexer.indices), maxIndex)
+
 	n, err := Mmap(w.Bytes())
 	assert.NoError(t, err)
 	assert.Equal(t, n.Indexer.r, m.Indexer.r)
@@ -102,9 +112,17 @@ func BenchmarkIndex(b *testing.B) {
 
 func TestIndexerSerialization(t *testing.T) {
 	cb := Builder()
-	for _, v := range words {
-		cb.Add([]byte(v), []byte(v))
+	rand.Seed(0)
+	numV := 2000000
+	data := make([][]byte, numV, numV)
+	for i := 0; i < numV; i++ {
+		v := rand.Uint64()
+		b := make([]byte, 8)
+		data[i] = b
+		binary.LittleEndian.PutUint64(b, v)
+		cb.Add(b, b)
 	}
+
 	m, err := cb.Build()
 	assert.NoError(t, err)
 	w := &bytes.Buffer{}
@@ -112,11 +130,12 @@ func TestIndexerSerialization(t *testing.T) {
 	assert.NoError(t, err)
 
 	buf := &bytes.Buffer{}
-	z := gzip.NewWriter(buf)
+	z, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
+	assert.NoError(t, err)
 	err = m.Indexer.Write(z)
 	assert.NoError(t, err)
 	z.Close()
-	fmt.Printf("size: indexer %d,  num keys: %d\n", len(buf.Bytes()), len(m.keys))	
+	fmt.Printf("bits per key %f\n", float32(len(buf.Bytes())*8)/float32(len(m.keys)))
 
 	rZ, err := gzip.NewReader(buf)
 	assert.NoError(t, err)
@@ -131,7 +150,7 @@ func TestIndexerSerialization(t *testing.T) {
 	assert.Equal(t, n.Indexer.indices, m.Indexer.indices)
 	assert.Equal(t, n.keys, m.keys)
 	assert.Equal(t, n.values, m.values)
-	for _, v := range words {
+	for _, v := range data {
 		assert.Equal(t, []byte(v), n.Get([]byte(v)))
 	}
 }

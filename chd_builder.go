@@ -169,8 +169,8 @@ nextBucket:
 			r:       hasher.r,
 			indices: indices,
 		},
-		keys:    keys,
-		values:  values,
+		keys:   keys,
+		values: values,
 	}, nil
 }
 

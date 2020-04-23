@@ -77,11 +77,10 @@ func mmapIndexer(b []byte, bi *sliceReader) (*Indexer, error) {
 	return c, nil
 }
 
-
 // Mmap creates a new CHD aliasing the CHD structure over an existing byte region (typically mmapped).
 func MmapIndexer(b []byte) (*Indexer, error) {
 	bi := &sliceReader{b: b}
-	return mmapIndexer(b,bi)
+	return mmapIndexer(b, bi)
 }
 
 // Get an entry from the hash table.
