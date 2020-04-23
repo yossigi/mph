@@ -3,6 +3,7 @@ package mph
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -70,13 +71,49 @@ func TestCHDSerialization(t *testing.T) {
 	assert.NoError(t, err)
 
 	indexW := &bytes.Buffer{}
-	err = m.Indexer.Write(indexW)
+	z := gzip.NewWriter(indexW)
+	err = m.Indexer.Write(z)
 	assert.NoError(t, err)
-	fmt.Printf("size: indexer %d vs. hashmap %d, num keys: %d\n", len(indexW.Bytes()), len(w.Bytes()), len(m.keys))	
+	z.Close()
+	fmt.Printf("size: indexer %d vs. hashmap %d, num keys: %d, hash fns %d. indexes %d, Eg, %x & %x\n", len(indexW.Bytes()), len(w.Bytes()), len(m.keys), len(m.Indexer.r), len(m.Indexer.indices), m.Indexer.indices[0], m.Indexer.indices[100])	
 	
+	n, err := Mmap(w.Bytes())
+	assert.NoError(t, err)
+	assert.Equal(t, n.Indexer.r, m.Indexer.r)
+	assert.Equal(t, n.Indexer.indices, m.Indexer.indices)
+	assert.Equal(t, n.keys, m.keys)
+	assert.Equal(t, n.values, m.values)
+	for _, v := range words {
+		assert.Equal(t, []byte(v), n.Get([]byte(v)))
+	}
+}
+func TestIndexerSerialization(t *testing.T) {
+	cb := Builder()
+	for _, v := range words {
+		cb.Add([]byte(v), []byte(v))
+	}
+	m, err := cb.Build()
+	assert.NoError(t, err)
+	w := &bytes.Buffer{}
+	err = m.Write(w)
+	assert.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	z := gzip.NewWriter(buf)
+	err = m.Indexer.Write(z)
+	assert.NoError(t, err)
+	z.Close()
+	fmt.Printf("size: indexer %d,  num keys: %d\n", len(buf.Bytes()), len(m.keys))	
+
+	rZ, err := gzip.NewReader(buf)
+	assert.NoError(t, err)
+
+	indexer, err := ReadIndexer(rZ)
+	assert.NoError(t, err)
 
 	n, err := Mmap(w.Bytes())
 	assert.NoError(t, err)
+	n.Indexer = *indexer
 	assert.Equal(t, n.Indexer.r, m.Indexer.r)
 	assert.Equal(t, n.Indexer.indices, m.Indexer.indices)
 	assert.Equal(t, n.keys, m.keys)

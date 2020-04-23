@@ -112,13 +112,13 @@ func (c *CHD) Write(w io.Writer) error {
 		uint32(len(c.keys)),
 	}
 
-	if err := writeInternal(w, data...); err != nil {
+	if err := write(w, data...); err != nil {
 		return err
 	}
 
 	for i := range c.keys {
 		k, v := c.keys[i], c.values[i]
-		if err := writeInternal(w, uint32(len(k)), uint32(len(v))); err != nil {
+		if err := write(w, uint32(len(k)), uint32(len(v))); err != nil {
 			return err
 		}
 		if _, err := w.Write(k); err != nil {

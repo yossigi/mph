@@ -98,7 +98,7 @@ func (c *Indexer) Get(key []byte, numKeys int) uint64 {
 	return (h ^ r) % uint64(numKeys)
 }
 
-func writeInternal(w io.Writer, nd ...interface{}) error {
+func write(w io.Writer, nd ...interface{}) error {
 	for _, d := range nd {
 		if err := binary.Write(w, binary.LittleEndian, d); err != nil {
 			return err
@@ -115,7 +115,7 @@ func (c *Indexer) Write(w io.Writer) error {
 		uint32(len(c.indices)), c.indices,
 	}
 
-	if err := writeInternal(w, data...); err != nil {
+	if err := write(w, data...); err != nil {
 		return err
 	}
 	return nil
