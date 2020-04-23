@@ -70,8 +70,8 @@ func TestCHDSerialization(t *testing.T) {
 
 	n, err := Mmap(w.Bytes())
 	assert.NoError(t, err)
-	assert.Equal(t, n.r, m.r)
-	assert.Equal(t, n.indices, m.indices)
+	assert.Equal(t, n.Indexer.r, m.Indexer.r)
+	assert.Equal(t, n.Indexer.indices, m.Indexer.indices)
 	assert.Equal(t, n.keys, m.keys)
 	assert.Equal(t, n.values, m.values)
 	for _, v := range words {
@@ -89,8 +89,8 @@ func TestCHDSerialization_empty(t *testing.T) {
 
 	n, err := Mmap(w.Bytes())
 	assert.NoError(t, err)
-	assert.Equal(t, n.r, m.r)
-	assert.Equal(t, n.indices, m.indices)
+	assert.Equal(t, n.Indexer.r, m.Indexer.r)
+	assert.Equal(t, n.Indexer.indices, m.Indexer.indices)
 	assert.Equal(t, n.keys, m.keys)
 	assert.Equal(t, n.values, m.values)
 }
@@ -106,8 +106,8 @@ func TestCHDSerialization_one(t *testing.T) {
 
 	n, err := Mmap(w.Bytes())
 	assert.NoError(t, err)
-	assert.Equal(t, n.r, m.r)
-	assert.Equal(t, n.indices, m.indices)
+	assert.Equal(t, n.Indexer.r, m.Indexer.r)
+	assert.Equal(t, n.Indexer.indices, m.Indexer.indices)
 	assert.Equal(t, n.keys, m.keys)
 	assert.Equal(t, n.values, m.values)
 }

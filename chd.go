@@ -38,23 +38,10 @@ import (
 
 // CHD hash table lookup.
 type CHD struct {
-	// Random hash function table.
-	r []uint64
-	// Array of indices into hash function table r. We assume there aren't
-	// more than 2^16 hash functions O_o
-	indices []uint16
+	Indexer Indexer
 	// Final table of values.
 	keys   [][]byte
 	values [][]byte
-}
-
-func hasher(data []byte) uint64 {
-	var hash uint64 = 14695981039346656037
-	for _, c := range data {
-		hash ^= uint64(c)
-		hash *= 1099511628211
-	}
-	return hash
 }
 
 // Read a serialized CHD.
@@ -68,17 +55,12 @@ func Read(r io.Reader) (*CHD, error) {
 
 // Mmap creates a new CHD aliasing the CHD structure over an existing byte region (typically mmapped).
 func Mmap(b []byte) (*CHD, error) {
-	c := &CHD{}
-
 	bi := &sliceReader{b: b}
-
-	// Read vector of hash functions.
-	rl := bi.ReadInt()
-	c.r = bi.ReadUint64Array(rl)
-
-	// Read hash function indices.
-	il := bi.ReadInt()
-	c.indices = bi.ReadUint16Array(il)
+	idx, err := mmapIndexer(b, bi)
+	if err != nil {
+		return nil, err
+	}
+	c := &CHD{Indexer: *idx}
 
 	el := bi.ReadInt()
 
@@ -97,16 +79,7 @@ func Mmap(b []byte) (*CHD, error) {
 
 // Get an entry from the hash table.
 func (c *CHD) Get(key []byte) []byte {
-	r0 := c.r[0]
-	h := hasher(key) ^ r0
-	i := h % uint64(len(c.indices))
-	ri := c.indices[i]
-	// This can occur if there were unassigned slots in the hash table.
-	if ri >= uint16(len(c.r)) {
-		return nil
-	}
-	r := c.r[ri]
-	ti := (h ^ r) % uint64(len(c.keys))
+	ti := c.Indexer.Get(key, len(c.keys))
 	// fmt.Printf("r[0]=%d, h=%d, i=%d, ri=%d, r=%d, ti=%d\n", c.r[0], h, i, ri, r, ti)
 	k := c.keys[ti]
 	if bytes.Compare(k, key) != 0 {
@@ -140,9 +113,15 @@ func (c *CHD) Write(w io.Writer) error {
 		return nil
 	}
 
+/*
+	err := c.Indexer.Write(w)
+	if err != nil {
+		return err
+	}
+*/
 	data := []interface{}{
-		uint32(len(c.r)), c.r,
-		uint32(len(c.indices)), c.indices,
+		uint32(len(c.Indexer.r)), c.Indexer.r,
+		uint32(len(c.Indexer.indices)), c.Indexer.indices,
 		uint32(len(c.keys)),
 	}
 

@@ -165,8 +165,10 @@ nextBucket:
 	// println("hash functions:", len(hasher.r))
 
 	return &CHD{
-		r:       hasher.r,
-		indices: indices,
+		Indexer: Indexer{
+			r:       hasher.r,
+			indices: indices,
+		},
 		keys:    keys,
 		values:  values,
 	}, nil
