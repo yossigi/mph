@@ -87,6 +87,19 @@ func TestCHDSerialization(t *testing.T) {
 		assert.Equal(t, []byte(v), n.Get([]byte(v)))
 	}
 }
+
+func BenchmarkIndex(b *testing.B) {
+	cb := Builder()
+	for i, v := range words {
+		cb.Add([]byte(v), []byte(v))
+		if i == 100000 {
+			break
+		}
+	}
+	_, err := cb.Build()
+	assert.NoError(b, err)
+}
+
 func TestIndexerSerialization(t *testing.T) {
 	cb := Builder()
 	for _, v := range words {
