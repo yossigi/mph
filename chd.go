@@ -31,7 +31,6 @@ package mph
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io"
 	"io/ioutil"
 )
@@ -104,34 +103,22 @@ func (c *CHD) Iterate() *Iterator {
 // Serialize the CHD. The serialized form is conducive to mmapped access. See
 // the Mmap function for details.
 func (c *CHD) Write(w io.Writer) error {
-	write := func(nd ...interface{}) error {
-		for _, d := range nd {
-			if err := binary.Write(w, binary.LittleEndian, d); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-/*
 	err := c.Indexer.Write(w)
 	if err != nil {
 		return err
 	}
-*/
+
 	data := []interface{}{
-		uint32(len(c.Indexer.r)), c.Indexer.r,
-		uint32(len(c.Indexer.indices)), c.Indexer.indices,
 		uint32(len(c.keys)),
 	}
 
-	if err := write(data...); err != nil {
+	if err := writeInternal(w, data...); err != nil {
 		return err
 	}
 
 	for i := range c.keys {
 		k, v := c.keys[i], c.values[i]
-		if err := write(uint32(len(k)), uint32(len(v))); err != nil {
+		if err := writeInternal(w, uint32(len(k)), uint32(len(v))); err != nil {
 			return err
 		}
 		if _, err := w.Write(k); err != nil {
